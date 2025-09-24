@@ -1,17 +1,7 @@
-{
-  "name": "whitex-website",
-  "version": "1.0.0",
-  "description": "WHITEX Sensi Tools Website",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "dotenv": "^16.3.1"
-  },
-  "engines": {
-    "node": ">=14.0.0"
-  }
+"dependencies": {
+  "express": "^4.18.2",
+  "cors": "^2.8.5",
+  "dotenv": "^16.3.1",
+  "firebase": "^10.12.5", 
+  "serverless-http": "^3.2.0"
 }
