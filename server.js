@@ -1,45 +1,32 @@
-const express = require("express");
-const cors = require("cors");
-const admin = require("firebase-admin");
+const express = require('express');
+const cors = require('cors');
+const serverless = require('serverless-http');
+const { initializeApp } = require('firebase/app');
+const { getFirestore } = require('firebase/firestore');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Firebase initialization
-if (!admin.apps.length) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// Firebase config (from environment variables)
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MSG_SENDER,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
+};
 
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,
-    });
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
-    console.log("Firebase initialized");
-  } catch (err) {
-    console.error("Firebase initialization error:", err.message);
-  }
-}
-
-const db = admin.firestore();
-
-// Test route
-app.get("/", (req, res) => {
-  res.send("Hello from WHITEX running on Vercel!");
-});
-
-// Example route to fetch links
-app.get("/api/links", async (req, res) => {
-  try {
-    const snapshot = await db.collection("links").get();
-    const links = snapshot.docs.map((doc) => doc.data());
-    res.json(links);
-  } catch (err) {
-    console.error("Error fetching links:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+app.get('/', (req, res) => {
+  res.send('🚀 WHITEX Firebase Connected Successfully!');
 });
 
 // Export for Vercel
 module.exports = app;
+module.exports.handler = serverless(app);
