@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const serverless = require('serverless-http');
+const path = require('path');
+
 const { initializeApp } = require('firebase/app');
 const { getFirestore } = require('firebase/firestore');
 
@@ -8,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Firebase config (from environment variables)
+// Firebase config from env
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -23,10 +25,13 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
-app.get('/', (req, res) => {
-  res.send('🚀 WHITEX Firebase Connected Successfully!');
+// Serve static frontend
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Default route = frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Export for Vercel
 module.exports = app;
 module.exports.handler = serverless(app);
