@@ -841,8 +841,6 @@
         }
     }
     
-    // REMOVED: Automatic download on page load
-    
     // Logo click effects
     const effects = ['flip', 'tilt', 'jump', 'spin', 'expand', 'shake'];
     let currentEffect = 0;
@@ -879,7 +877,7 @@
             
             if (doc.exists) {
                 const data = doc.data();
-                handleSearchSuccess(data);
+                await handleSearchSuccess(data);
             } else {
                 alert('Code not found in database');
                 loader.style.display = 'none';
@@ -892,49 +890,73 @@
         }
     }
     
-    // Handle successful search
-    function handleSearchSuccess(data) {
-        // Show results with actual data
-        results.style.display = 'block';
-        resultName.textContent = data.name || 'Not available';
-        resultPassword.textContent = data.password || 'Not available';
-        
-        // Store download URL for later use
-        if (data.driveLink) {
-            localStorage.setItem('downloadUrl', data.driveLink);
-        }
-        
-        // Store token link from database (user-specific)
-        currentTokenLink = data.tokenLink || 'https://control.kochava.com/v1/cpi/click?campaign_id=kozz76680281-d2kkq6166023a7a094da&network_id=8411';
-        
-        // Store the actual data
-        localStorage.setItem('codeData', JSON.stringify({
-            name: data.name || 'Not available',
-            password: data.password || 'Not available'
-        }));
-        
-        // Show token process after a brief delay
-        setTimeout(() => {
-            loader.style.display = 'none';
-            tokenSection.style.display = 'block';
+    // CORRECTED handleSearchSuccess function - ALWAYS fetches from userTokens collection
+    async function handleSearchSuccess(data) {
+        try {
+            // Show results with actual data
+            results.style.display = 'block';
+            resultName.textContent = data.name || 'Not available';
+            resultPassword.textContent = data.password || 'Not available';
             
-            // Show loading animation
-            statusLoading.style.display = 'flex';
-            statusNotfound.style.display = 'none';
-            statusDownload.style.display = 'none';
+            // Store download URL for later use
+            if (data.driveLink) {
+                localStorage.setItem('downloadUrl', data.driveLink);
+            }
             
-            // After 2 seconds, show not found message
+            // CRITICAL FIX: ALWAYS get updated token link from userTokens collection
+            if (!window.db) {
+                await initializeFirebase();
+            }
+            
+            // First try to get the user-specific updated token
+            const userTokensRef = window.db.collection('userTokens').doc(data.user);
+            const userTokenDoc = await userTokensRef.get();
+            
+            if (userTokenDoc.exists) {
+                // Use the updated token from userTokens collection
+                const userTokenData = userTokenDoc.data();
+                currentTokenLink = userTokenData.tokenLink;
+                console.log('Using UPDATED token link from userTokens:', currentTokenLink);
+            } else {
+                // If no user-specific token exists, try the code's token link
+                currentTokenLink = data.tokenLink;
+                console.log('Using code collection token link:', currentTokenLink);
+            }
+            
+            // Store the actual data
+            localStorage.setItem('codeData', JSON.stringify({
+                name: data.name || 'Not available',
+                password: data.password || 'Not available'
+            }));
+            
+            // Show token process after a brief delay
             setTimeout(() => {
-                statusLoading.style.display = 'none';
-                statusNotfound.style.display = 'block';
+                loader.style.display = 'none';
+                tokenSection.style.display = 'block';
                 
-                // After 2 more seconds, show download instruction
+                // Show loading animation
+                statusLoading.style.display = 'flex';
+                statusNotfound.style.display = 'none';
+                statusDownload.style.display = 'none';
+                
+                // After 2 seconds, show not found message
                 setTimeout(() => {
-                    statusNotfound.style.display = 'none';
-                    statusDownload.style.display = 'block';
+                    statusLoading.style.display = 'none';
+                    statusNotfound.style.display = 'block';
+                    
+                    // After 2 more seconds, show download instruction
+                    setTimeout(() => {
+                        statusNotfound.style.display = 'none';
+                        statusDownload.style.display = 'block';
+                    }, 2000);
                 }, 2000);
-            }, 2000);
-        }, 1500);
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Error in handleSearchSuccess:', error);
+            // Fallback to original data token link if userTokens fetch fails
+            currentTokenLink = data.tokenLink;
+        }
     }
     
     // Handle token button click - NOW USES DYNAMIC LINK FROM DATABASE
